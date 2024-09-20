@@ -8,13 +8,25 @@ import helmet from "helmet"
 import morgan from "morgan"
 import path from "path";
 import { fileURLToPath } from 'url';
+import { register } from "./controllers/auth.js"
 
-//Configurations
+//Middleware
+
+// Converts the current module's URL (the file you're writing this code in) to a file path string. This is a replacement for __filename in CommonJS.
 const __filename = fileURLToPath(import.meta.url);
+
+// Extracts the directory name of the current file. This is a replacement for __dirname in CommonJS.
 const __dirname = path.dirname(__filename);
+
+// This loads the .env file and makes its values available in process.env
 dotenv.config();
+
 const app = express();
+
+// Parses incoming requests with JSON payloads. It allows you to access JSON data sent in POST or PUT requests via req.body.
 app.use(express.json());
+
+
 app.use(helmet())
 app.use(helmet.crossOriginResourcePolicy({ policy : "cross-origin"}))
 app.use(morgan("common"));
@@ -27,7 +39,6 @@ app.use("/assets", express.static(path.join(__dirname, 'public/assets')))
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
         cb(null, "public/assets");
-
     },
     filename: function (req, file, cb) {
         cb(null, file.originalname);
@@ -35,3 +46,17 @@ const storage = multer.diskStorage({
 });
 
 const upload = multer ({ storage });
+
+
+// Routes with files
+app.post("auth/register", upload.single("picture"), register)
+
+// Database
+const PORT = process.env.PORT || 6001;
+mongoose.connect(process.env.MONGO_URL, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+}).then(() => {
+    app.listen(PORT, () => console.log(`Server Port: ${PORT}`));
+}) 
+.catch((error) => console.log(`${error} did not connect`));
